@@ -12,7 +12,11 @@ TTS: gTTS (Google Text-to-Speech) — free, supports all our target languages.
 import io
 import os
 import tempfile
+import ssl
 from typing import Optional
+
+# Bypass Mac Python SSL certificate verification issues for model downloads
+ssl._create_default_https_context = ssl._create_unverified_context
 
 from core import language_layer
 

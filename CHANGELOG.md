@@ -2,6 +2,22 @@
 
 All notable changes to the Artha AI project will be documented in this file.
 
+## [1.1.0] - 2026-05-08
+
+### Added
+- **React Frontend Implementation:** Developed a robust, mobile-first client application using Vite and React.
+- **Stitch Design System Integration:** Strictly implemented the "Digital Soil" aesthetic using vanilla CSS (`index.css`), bringing Terracotta accents and proper typography (Playfair Display / Source Sans 3) to the UI.
+- **Comprehensive Page Architecture:**
+  - `Home`: Adaptive dashboard featuring a quick chat interface, insights, and quick actions.
+  - `VoiceInteraction`: A dedicated, fullscreen recording interface utilizing the `MediaRecorder` API for real-time STT and TTS streaming.
+  - `Transactions`: Organized ledger for checking account balance history.
+  - `Schemes`: Dynamic tracker for enrolled and recommended government schemes.
+  - `Education`: Financial literacy module featuring tabbed lessons aligned with the backend `LiteracySpecialistAgent`.
+- **Global Context Management:** Added `SessionContext.jsx` to centrally manage the active user profile (`JD-0001`), conversation history, scheme eligibility, and fraud alert state.
+- **Centralized API Client:** Created `api.js` to handle all Axios requests to the Flask backend, including multipart form data parsing for Whisper audio uploads and blob parsing for Google TTS responses.
+- **Responsive Navigation:** Implemented dynamic layout components: `Sidebar` for desktop and `BottomNav` for mobile displays.
+- **Fraud Alert UI:** Designed an `AlertBanner` component that triggers universally upon the backend returning a `fraud_triggered` flag.
+
 ## [1.0.0] - 2026-05-08
 
 ### Added

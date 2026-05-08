@@ -21,6 +21,12 @@ from mock_bank import (
     pay_bill,
     get_mini_statement,
     flag_fraud_risk,
+    get_installments,
+    get_loans,
+    get_spending_summary,
+    set_spending_limit,
+    get_fixed_deposits,
+    create_fixed_deposit,
 )
 
 app = Flask(__name__)
@@ -62,7 +68,10 @@ def log_request(response):
     except Exception:
         status_label = "unknown"
 
-    print(f"[BANK API] {method} {path}{details} | status: {status_label}")
+    try:
+        print(f"[BANK API] {method} {path}{details} | status: {status_label}")
+    except OSError:
+        pass  # Suppress when stdout is unavailable (background mode)
     return response
 
 
@@ -379,6 +388,178 @@ def do_pay_bill():
             "error": result["error"],
             "message_hindi": f"Bill payment fail — {result['error']}",
             "message_kannada": f"Bill payment viphal — {result['error']}",
+        }), 400
+
+
+# ─── INSTALLMENTS / REMINDERS ─────────────────────────────────────────
+
+@app.route("/account/<account_id>/installments", methods=["GET"])
+def account_installments(account_id):
+    acct = get_account(account_id)
+    if not acct:
+        return jsonify({
+            "status": "error",
+            "error": f"Account '{account_id}' not found",
+        }), 404
+
+    installments = get_installments(account_id)
+    overdue = [i for i in installments if i["status"] == "overdue"]
+
+    return jsonify({
+        "status": "success",
+        "account_id": account_id,
+        "name": acct["name"],
+        "installments": installments,
+        "total_upcoming": len(installments),
+        "overdue_count": len(overdue),
+        "message_hindi": f"Aapke {len(installments)} upcoming payments hain. {len(overdue)} overdue hain.",
+        "message_kannada": f"Nimma {len(installments)} baaki payments ide. {len(overdue)} overdue aagide.",
+    })
+
+
+# ─── LOANS ─────────────────────────────────────────────────────────────
+
+@app.route("/account/<account_id>/loans", methods=["GET"])
+def account_loans(account_id):
+    acct = get_account(account_id)
+    if not acct:
+        return jsonify({
+            "status": "error",
+            "error": f"Account '{account_id}' not found",
+        }), 404
+
+    loans = get_loans(account_id)
+    active_loans = [l for l in loans if l["status"] == "active"]
+    total_outstanding = sum(l["outstanding"] for l in active_loans)
+
+    return jsonify({
+        "status": "success",
+        "account_id": account_id,
+        "name": acct["name"],
+        "loans": loans,
+        "active_count": len(active_loans),
+        "total_outstanding": total_outstanding,
+        "message_hindi": f"Aapke {len(active_loans)} active loans hain. Kul baaki: ₹{total_outstanding:,.2f}",
+        "message_kannada": f"Nimma {len(active_loans)} active loans ide. Ottu baaki: ₹{total_outstanding:,.2f}",
+    })
+
+
+# ─── SMART SPENDING ───────────────────────────────────────────────────
+
+@app.route("/account/<account_id>/spending", methods=["GET"])
+def account_spending(account_id):
+    acct = get_account(account_id)
+    if not acct:
+        return jsonify({
+            "status": "error",
+            "error": f"Account '{account_id}' not found",
+        }), 404
+
+    summary = get_spending_summary(account_id)
+    return jsonify({
+        "status": "success",
+        **summary,
+        "message_hindi": f"Is mahine aapne ₹{summary['total_spent']:,.2f} kharch kiye. Limit: ₹{summary['monthly_limit']:,.2f}",
+        "message_kannada": f"Ee tingalu neevu ₹{summary['total_spent']:,.2f} kharchu maadiddiri. Limit: ₹{summary['monthly_limit']:,.2f}",
+    })
+
+
+@app.route("/account/<account_id>/spending/limit", methods=["POST"])
+def set_account_spending_limit(account_id):
+    body = request.get_json(silent=True) or {}
+    limit = body.get("limit")
+
+    if limit is None:
+        return jsonify({
+            "status": "error",
+            "error": "limit is required",
+        }), 400
+
+    try:
+        limit = float(limit)
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "error": "limit must be a number",
+        }), 400
+
+    result = set_spending_limit(account_id, limit)
+
+    if result["success"]:
+        return jsonify({
+            "status": "success",
+            "data": result,
+            "message_hindi": f"Aapki monthly kharcha limit ₹{limit:,.2f} set ho gayi.",
+            "message_kannada": f"Nimma tingaḷa kharchu limit ₹{limit:,.2f} set aagide.",
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "error": result["error"],
+        }), 400
+
+
+# ─── FIXED DEPOSITS ───────────────────────────────────────────────────
+
+@app.route("/account/<account_id>/fixed_deposits", methods=["GET"])
+def account_fixed_deposits(account_id):
+    acct = get_account(account_id)
+    if not acct:
+        return jsonify({
+            "status": "error",
+            "error": f"Account '{account_id}' not found",
+        }), 404
+
+    fds = get_fixed_deposits(account_id)
+    total_principal = sum(fd["principal"] for fd in fds if fd["status"] == "active")
+
+    return jsonify({
+        "status": "success",
+        "account_id": account_id,
+        "name": acct["name"],
+        "fixed_deposits": fds,
+        "active_count": len(fds),
+        "total_principal": total_principal,
+        "message_hindi": f"Aapke paas {len(fds)} fixed deposits hain. Total deposit: ₹{total_principal:,.2f}",
+        "message_kannada": f"Nimma hatira {len(fds)} fixed deposits ide. Ottu deposit: ₹{total_principal:,.2f}",
+    })
+
+
+@app.route("/account/<account_id>/fixed_deposits", methods=["POST"])
+def new_fixed_deposit(account_id):
+    body = request.get_json(silent=True) or {}
+    amount = body.get("amount")
+    duration_months = body.get("duration_months", 12) # Default 12 months
+
+    if amount is None:
+        return jsonify({
+            "status": "error",
+            "error": "amount is required",
+        }), 400
+
+    try:
+        amount = float(amount)
+        duration_months = int(duration_months)
+    except (ValueError, TypeError):
+        return jsonify({
+            "status": "error",
+            "error": "amount and duration_months must be numbers",
+        }), 400
+
+    result = create_fixed_deposit(account_id, amount, duration_months)
+
+    if result["success"]:
+        fd = result["fd"]
+        return jsonify({
+            "status": "success",
+            "data": result,
+            "message_hindi": f"₹{amount:,.2f} ka FD {duration_months} mahine ke liye ban gaya. 6% interest ke saath aapko ₹{fd['maturity_amount']:,.2f} milenge.",
+            "message_kannada": f"₹{amount:,.2f} ninda {duration_months} tingalige FD aagide. 6% interest jote nimage ₹{fd['maturity_amount']:,.2f} sigutte.",
+        })
+    else:
+        return jsonify({
+            "status": "error",
+            "error": result["error"],
         }), 400
 
 

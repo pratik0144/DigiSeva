@@ -7,7 +7,7 @@ The central API server that ties together all Artha AI modules:
   - WhisperSTT & ArthaTTS for voice I/O
   - language_layer for multilingual support
 
-Port 5000 — Bank API (teammate's) runs on port 5001.
+Port 5005 — Bank API (teammate's) runs on port 5001.
 """
 
 import os
@@ -279,7 +279,15 @@ def stt():
     log.info(f"[STT] Received {len(audio_bytes)} bytes, hint: {hint_language}")
 
     stt_engine = _get_stt()
-    result = stt_engine.transcribe_bytes(audio_bytes, hint_language)
+    try:
+        result = stt_engine.transcribe_bytes(audio_bytes, hint_language)
+    except Exception as e:
+        log.error(f"[STT] Transcription failed: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "We could not understand the audio. Please try speaking again.",
+            "detail": str(e)
+        }), 422
 
     log.info(f"[STT] Transcribed: '{result['text'][:60]}...' | lang: {result['detected_language']}")
 
@@ -447,7 +455,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print("  🚀 Artha AI — Starting API Server")
     print("=" * 60)
-    print(f"  Port:              5000")
+    print(f"  Port:              5005")
     print(f"  Bank API:          {BANK_API}")
     print(f"  Gemini API Key:    {'✅ Set' if os.environ.get('GEMINI_API_KEY') else '❌ Not set'}")
     print(f"  Primary Languages: Hindi (hi), Kannada (kn)")
@@ -456,6 +464,6 @@ if __name__ == "__main__":
 
     app.run(
         host="0.0.0.0",
-        port=5000,
+        port=5005,
         debug=True,
     )

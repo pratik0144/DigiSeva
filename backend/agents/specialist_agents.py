@@ -114,6 +114,98 @@ class BankingAgent:
                 "detail": str(e),
             })
 
+    def _get_installments(self, account_id: str) -> str:
+        """GET /account/{account_id}/installments — Fetch upcoming installments."""
+        try:
+            resp = requests.get(
+                f"{self.base_url}/account/{account_id}/installments",
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to fetch installments",
+                "detail": str(e),
+            })
+
+    def _get_loans(self, account_id: str) -> str:
+        """GET /account/{account_id}/loans — Fetch loan details."""
+        try:
+            resp = requests.get(
+                f"{self.base_url}/account/{account_id}/loans",
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to fetch loans",
+                "detail": str(e),
+            })
+
+    def _get_spending(self, account_id: str) -> str:
+        """GET /account/{account_id}/spending — Fetch spending summary."""
+        try:
+            resp = requests.get(
+                f"{self.base_url}/account/{account_id}/spending",
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to fetch spending data",
+                "detail": str(e),
+            })
+
+    def _set_spending_limit(self, account_id: str, limit: float) -> str:
+        """POST /account/{account_id}/spending/limit — Set spending limit."""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/account/{account_id}/spending/limit",
+                json={"limit": limit},
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to set spending limit",
+                "detail": str(e),
+            })
+
+    def _get_fixed_deposits(self, account_id: str) -> str:
+        """GET /account/{account_id}/fixed_deposits — Fetch FD details."""
+        try:
+            resp = requests.get(
+                f"{self.base_url}/account/{account_id}/fixed_deposits",
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to fetch fixed deposits",
+                "detail": str(e),
+            })
+
+    def _create_fixed_deposit(self, account_id: str, amount: float, duration_months: int) -> str:
+        """POST /account/{account_id}/fixed_deposits — Create a new FD."""
+        try:
+            resp = requests.post(
+                f"{self.base_url}/account/{account_id}/fixed_deposits",
+                json={"amount": amount, "duration_months": duration_months},
+                timeout=5,
+            )
+            resp.raise_for_status()
+            return json.dumps(resp.json(), ensure_ascii=False)
+        except Exception as e:
+            return json.dumps({
+                "error": "Failed to create fixed deposit",
+                "detail": str(e),
+            })
+
     # ---- Action Detection ----
 
     def _detect_banking_action(self, text: str) -> str:
@@ -141,10 +233,44 @@ class BankingAgent:
             "बिल", "बिजली", "रिचार्ज",
             "ಬಿಲ್", "ರೀಚಾರ್ಜ್",
         ]
+        installment_keywords = [
+            "installment", "emi", "reminder", "due", "kist", "kisto",
+            "payment due", "upcoming payment", "overdue",
+            "किस्त", "ईएमआई", "बकाया", "याद दिलाना",
+            "ಕಂತು", "ಇಎಂಐ", "ಬಾಕಿ",
+        ]
+        loan_keywords = [
+            "loan", "karz", "rin", "udhar", "outstanding",
+            "ऋण", "कर्ज", "उधार", "लोन",
+            "ಸಾಲ", "ಲೋನ್",
+        ]
+        spending_keywords = [
+            "spending", "budget", "kharcha", "limit", "spent",
+            "how much spent", "kitna kharch", "monthly spending",
+            "खर्चा", "बजट", "खर्च",
+            "ಖರ್ಚು", "ಬಜೆಟ್",
+        ]
+        fd_keywords = [
+            "fixed deposit", "fd", "invest", "nivesh", "jama karna",
+            "फिक्स्ड डिपॉजिट", "एफडी", "निवेश", "जमा",
+            "ಫಿಕ್ಸೆಡ್ ಡೆಪಾಸಿಟ್", "ಎಫ್‌ಡಿ", "ಹೂಡಿಕೆ",
+        ]
 
         for kw in transfer_keywords:
             if kw in text_lower:
                 return "transfer"
+        for kw in fd_keywords:
+            if kw in text_lower:
+                return "fixed_deposits"
+        for kw in installment_keywords:
+            if kw in text_lower:
+                return "installments"
+        for kw in loan_keywords:
+            if kw in text_lower:
+                return "loans"
+        for kw in spending_keywords:
+            if kw in text_lower:
+                return "spending"
         for kw in bill_keywords:
             if kw in text_lower:
                 return "bill"
@@ -174,47 +300,101 @@ class BankingAgent:
         action = self._detect_banking_action(user_message)
         tool_called = action
 
+        import re
+
         # Fetch data from bank API
         if action == "balance":
             tool_result = self._get_balance(account_id)
         elif action == "transactions":
             tool_result = self._get_transactions(account_id)
         elif action == "transfer":
-            # For transfers, we'd parse recipient/amount from message
-            # For now, provide what we have and let LLM ask for details
-            tool_result = json.dumps({
-                "status": "awaiting_details",
-                "message": "Need recipient account and amount to proceed",
-            })
+            amount_match = re.search(r"(\d+)", user_message)
+            amount = float(amount_match.group(1)) if amount_match else None
+            
+            text_lower = user_message.lower()
+            to_id = None
+            if "arjun" in text_lower: to_id = "SB-3001"
+            elif "ramesh" in text_lower: to_id = "JD-1001"
+            elif "savitha" in text_lower: to_id = "SB-2001"
+            elif "meera" in text_lower: to_id = "SB-2002"
+            elif "fatima" in text_lower: to_id = "JD-1002"
+            
+            if amount and to_id:
+                tool_result = self._transfer(account_id, to_id, amount)
+            else:
+                tool_result = json.dumps({
+                    "status": "awaiting_details",
+                    "message": "Need recipient account name and amount to proceed",
+                })
         elif action == "bill":
-            tool_result = json.dumps({
-                "status": "awaiting_details",
-                "message": "Need bill type and amount to proceed",
-            })
+            amount_match = re.search(r"(\d+)", user_message)
+            amount = float(amount_match.group(1)) if amount_match else None
+            
+            text_lower = user_message.lower()
+            bill_type = None
+            if any(k in text_lower for k in ["electricity", "bijli", "vidyut"]): bill_type = "electricity"
+            elif any(k in text_lower for k in ["mobile", "recharge"]): bill_type = "mobile_recharge"
+            elif "ration" in text_lower: bill_type = "ration"
+            elif any(k in text_lower for k in ["insurance", "bima", "vima"]): bill_type = "insurance_premium"
+            
+            if amount and bill_type:
+                tool_result = self._pay_bill(account_id, bill_type, amount)
+            else:
+                tool_result = json.dumps({
+                    "status": "awaiting_details",
+                    "message": "Need bill type (electricity, mobile, ration, insurance) and amount to proceed",
+                })
+        elif action == "installments":
+            tool_result = self._get_installments(account_id)
+        elif action == "loans":
+            tool_result = self._get_loans(account_id)
+        elif action == "spending":
+            # Check if user wants to set a limit
+            import re as re2
+            set_match = re2.search(r"(?:set|limit|budget)\D*(\d+)", user_message.lower())
+            if set_match:
+                limit_val = float(set_match.group(1))
+                tool_result = self._set_spending_limit(account_id, limit_val)
+            else:
+                tool_result = self._get_spending(account_id)
+        elif action == "fixed_deposits":
+            import re as re3
+            # Try to extract amount and duration
+            amount_match = re3.search(r"(\d+)", user_message)
+            # Try to find months/years
+            duration_match = re3.search(r"(\d+)\s*(month|mahina|mahine|year|saal|varsha)", user_message.lower())
+            
+            # If user asks to create FD
+            if any(k in user_message.lower() for k in ["add", "invest", "create", "banao", "madu", "jama"]):
+                if amount_match and duration_match:
+                    amount = float(amount_match.group(1))
+                    duration_val = int(duration_match.group(1))
+                    duration_unit = duration_match.group(2)
+                    
+                    # Convert years to months if needed
+                    duration_months = duration_val * 12 if duration_unit in ["year", "saal", "varsha"] else duration_val
+                    
+                    tool_result = self._create_fixed_deposit(account_id, amount, duration_months)
+                else:
+                    tool_result = json.dumps({
+                        "status": "awaiting_details",
+                        "message": "Need amount and duration (months/years) to create FD",
+                    })
+            else:
+                tool_result = self._get_fixed_deposits(account_id)
         else:
             tool_result = self._get_balance(account_id)
 
         # Build language-aware system prompt
         lang = self.context.get("language", "hi")
         lang_instruction = language_layer.get_system_prompt_language_instruction(lang)
+        name = self.context.get("name", "User")
 
-        system_prompt = f"""You are a banking assistant for rural India users.
+        system_prompt = f"""You are a banking assistant for rural India.
 {lang_instruction}
-
-User context:
-{json.dumps(self.context, ensure_ascii=False, indent=2)}
-
-You have already fetched this data from the bank system:
+User: {name}, Account: {self.context.get('account_id','?')}
 BANK DATA: {tool_result}
-
-Rules:
-- Read numbers ONLY from BANK DATA above — never make up balances.
-- Keep response under 3 sentences.
-- Use simple words. No banking jargon.
-- End with fraud reminder in user's language:
-  Hindi: "Yaad rakhein: koi bhi aapka OTP ya PIN nahi maangta."
-  Kannada: "Nenapirakoli: yaaru nimage OTP keḷabarudu."
-"""
+Rules: Use ONLY numbers from BANK DATA. Max 2 sentences. Simple words. End with: Never share your OTP or PIN."""
 
         # Generate response via LLMRouter
         messages = conversation_history + [{"role": "user", "content": user_message}]
@@ -222,8 +402,14 @@ Rules:
             self.agent_name,
             system_prompt,
             messages,
-            max_tokens=300,
+            max_tokens=150,
         )
+
+        if result["text"].startswith("[LLMRouter]"):
+            if lang == "kn":
+                result["text"] = "ಕ್ಷಮಿಸಿ, ನಾನು ಈಗ ಬ್ಯಾಂಕಿಂಗ್ ಮಾಹಿತಿಯನ್ನು ತರಲು ಸಾಧ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಬ್ಯಾಂಕ್ ಶಾಖೆಯನ್ನು ಸಂಪರ್ಕಿಸಿ."
+            else:
+                result["text"] = "माफ़ करें, मैं अभी बैंकिंग की जानकारी नहीं ला पा रहा हूँ। कृपया बैंक शाखा में संपर्क करें।"
 
         return {
             "response": result["text"],
@@ -337,19 +523,10 @@ class SchemesAgent:
 
         system_prompt = f"""You are a government schemes advisor for rural India.
 {lang_instruction}
-
-User context:
-{json.dumps(self.context, ensure_ascii=False, indent=2)}
-
-Eligible schemes from database: {schemes_data}
+User: {self.context.get('name','User')}, Occupation: {self.context.get('occupation','unknown')}
+Schemes data: {schemes_data}
 {enrollment_block}
-Rules:
-- Only mention schemes from the data above — never invent schemes.
-- Explain each scheme in 1 simple sentence. Always mention exact benefit amount.
-- Prioritize: PM-KISAN for farmers, PMJDY for unbanked, Ujjwala for women.
-- If user wants to enroll, confirm and call enrollment.
-- Keep response under 4 sentences.
-"""
+Rules: Only mention schemes from data above. Max 3 sentences. Mention exact benefit amounts. Simple words."""
 
         # Generate response via LLMRouter
         messages = conversation_history + [{"role": "user", "content": user_message}]
@@ -357,8 +534,14 @@ Rules:
             self.agent_name,
             system_prompt,
             messages,
-            max_tokens=400,
+            max_tokens=150,
         )
+
+        if result["text"].startswith("[LLMRouter]"):
+            if lang == "kn":
+                result["text"] = "ಕ್ಷಮಿಸಿ, ನಾನು ಈಗ ಯೋಜನೆಗಳ ಮಾಹಿತಿಯನ್ನು ತರಲು ಸಾಧ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಬ್ಯಾಂಕ್ ಶಾಖೆಯನ್ನು ಸಂಪರ್ಕಿಸಿ."
+            else:
+                result["text"] = "माफ़ करें, मैं अभी योजनाओं की जानकारी नहीं ला पा रहा हूँ। कृपया बैंक शाखा में संपर्क करें।"
 
         return {
             "response": result["text"],
@@ -424,31 +607,24 @@ class FraudGuardAgent:
         lang = self.context.get("language", "hi")
         lang_instruction = language_layer.get_system_prompt_language_instruction(lang)
 
-        system_prompt = f"""You are a fraud protection specialist for rural India users.
+        system_prompt = f"""You are a fraud protection specialist for rural India.
 {lang_instruction}
+Fraud scan: {json.dumps(fraud_result, ensure_ascii=False)}
+Rules: If fraud detected, say SCAM clearly. Explain in 2 sentences. Tell user to hang up/block. Banks NEVER ask for OTP/PIN. Be calm and reassuring."""
 
-User context:
-{json.dumps(self.context, ensure_ascii=False, indent=2)}
-
-Fraud scan result: {json.dumps(fraud_result, ensure_ascii=False)}
-
-Rules:
-- If fraud detected: clearly say SCAM/DHOKA in bold. Explain in 2 simple sentences
-  what the scammer wants and why it's a scam.
-- Tell user exactly what to do: hang up / block number / tell family.
-- Real banks NEVER ask for OTP, PIN, or Aadhaar on phone. Ever.
-- Tone: calm and reassuring, like a trusted elder in the family.
-- If not fraud: reassure the user briefly in 1 sentence.
-"""
-
-        # Generate response via LLMRouter
         messages = conversation_history + [{"role": "user", "content": user_message}]
         result = self.router.call(
             self.agent_name,
             system_prompt,
             messages,
-            max_tokens=300,
+            max_tokens=150,
         )
+
+        if result["text"].startswith("[LLMRouter]"):
+            if lang == "kn":
+                result["text"] = "⚠️ ಎಚ್ಚರಿಕೆ! ಇದು ಒಂದು ವಂಚನೆ (fraud) ಆಗಿರಬಹುದು। ಯಾರಿಗೂ OTP, PIN ಹೇಳಬೇಡಿ."
+            else:
+                result["text"] = "⚠️ सावधान! यह एक धोखाधड़ी (fraud) हो सकती है। कभी भी किसी को OTP, PIN न बताएं।"
 
         return {
             "response": result["text"],
@@ -486,33 +662,23 @@ class LiteracyAgent:
         lang = self.context.get("language", "hi")
         lang_instruction = language_layer.get_system_prompt_language_instruction(lang)
 
-        system_prompt = f"""You are a financial literacy teacher for first-time banking users in rural India.
+        system_prompt = f"""You are a financial literacy teacher for rural India.
 {lang_instruction}
+Rules: Teach one concept. Max 3 sentences. Use simple analogies (Interest=rent for money, EMI=monthly share, Savings=money for tomorrow). End with one action user can take today."""
 
-User context:
-{json.dumps(self.context, ensure_ascii=False, indent=2)}
-
-Rules:
-- Teach one concept per response. Max 4 sentences.
-- Use rural analogies:
-    Interest = "Paisa uthane ka kiraya" (rent for using money)
-    EMI = "Mahine ka hissa" (monthly share)
-    Savings = "Kal ke liye aaj ka paisa" (today's money for tomorrow)
-    Collateral = "Girvee" (pledge)
-    Credit Score = "Bharosa ki rating" (trust rating)
-    Insurance = "Suraksha kavach" (safety shield)
-- Never use English jargon without explaining it immediately after.
-- End with one simple action the user can take today.
-"""
-
-        # Generate response via LLMRouter
         messages = conversation_history + [{"role": "user", "content": user_message}]
         result = self.router.call(
             self.agent_name,
             system_prompt,
             messages,
-            max_tokens=350,
+            max_tokens=150,
         )
+
+        if result["text"].startswith("[LLMRouter]"):
+            if lang == "kn":
+                result["text"] = "ಕ್ಷಮಿಸಿ, ನಾನು ಈಗ ನಿಮಗೆ ಮಾಹಿತಿಯನ್ನು ನೀಡಲು ಸಾಧ್ಯವಿಲ್ಲ. ದಯವಿಟ್ಟು ಬ್ಯಾಂಕ್ ಶಾಖೆಯನ್ನು ಸಂಪರ್ಕಿಸಿ."
+            else:
+                result["text"] = "माफ़ करें, मैं अभी आपको जानकारी नहीं दे पा रहा हूँ। कृपया बैंक शाखा में संपर्क करें।"
 
         return {
             "response": result["text"],

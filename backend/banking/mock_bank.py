@@ -5,7 +5,7 @@ All data is in-memory. Python standard library only.
 """
 
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # ─── ACCOUNTS DATABASE ───────────────────────────────────────────────
 
@@ -173,6 +173,154 @@ ACCOUNTS = {
         "fraud_history": False,
         "fraud_notes": None,
     },
+}
+
+
+# ─── INSTALLMENTS DATABASE ────────────────────────────────────────────
+
+INSTALLMENTS = {
+    "JD-1001": [
+        {"type": "PM-KISAN Installment", "amount": 2000.0, "due_date": "2026-06-01", "status": "upcoming", "frequency": "quarterly"},
+        {"type": "Crop Insurance Premium", "amount": 450.0, "due_date": "2026-05-20", "status": "upcoming", "frequency": "seasonal"},
+        {"type": "Electricity Bill", "amount": 300.0, "due_date": "2026-05-15", "status": "overdue", "frequency": "monthly"},
+    ],
+    "SB-2001": [
+        {"type": "MGNREGA Wage Credit", "amount": 1200.0, "due_date": "2026-05-28", "status": "upcoming", "frequency": "monthly"},
+        {"type": "Mobile Recharge", "amount": 100.0, "due_date": "2026-05-18", "status": "upcoming", "frequency": "monthly"},
+    ],
+    "SB-2002": [
+        {"type": "LPG Cylinder Refill", "amount": 800.0, "due_date": "2026-05-25", "status": "upcoming", "frequency": "bi-monthly"},
+        {"type": "School Fees", "amount": 1200.0, "due_date": "2026-06-05", "status": "upcoming", "frequency": "quarterly"},
+        {"type": "Insurance Premium", "amount": 500.0, "due_date": "2026-05-12", "status": "overdue", "frequency": "monthly"},
+    ],
+    "SB-3001": [
+        {"type": "Shop Rent", "amount": 1500.0, "due_date": "2026-05-10", "status": "overdue", "frequency": "monthly"},
+        {"type": "Mudra Loan EMI", "amount": 2500.0, "due_date": "2026-05-20", "status": "upcoming", "frequency": "monthly"},
+        {"type": "Insurance Premium", "amount": 700.0, "due_date": "2026-06-01", "status": "upcoming", "frequency": "monthly"},
+    ],
+    "JD-1002": [
+        {"type": "Widow Pension Credit", "amount": 500.0, "due_date": "2026-05-26", "status": "upcoming", "frequency": "monthly"},
+        {"type": "Medicine Expense", "amount": 300.0, "due_date": "2026-05-15", "status": "overdue", "frequency": "monthly"},
+    ],
+    "NONE-0001": [],
+}
+
+
+# ─── LOANS DATABASE ──────────────────────────────────────────────────
+
+LOANS = {
+    "JD-1001": [
+        {
+            "loan_id": "LN-KCC-001",
+            "loan_type": "Kisan Credit Card",
+            "bank_name": "State Bank of India",
+            "principal": 50000.0,
+            "outstanding": 32000.0,
+            "emi_amount": 2200.0,
+            "interest_rate": 4.0,
+            "tenure_months": 24,
+            "remaining_emis": 15,
+            "start_date": "2025-08-01",
+            "status": "active",
+        },
+    ],
+    "SB-2001": [],
+    "SB-2002": [
+        {
+            "loan_id": "LN-PL-002",
+            "loan_type": "Personal Loan",
+            "bank_name": "Punjab National Bank",
+            "principal": 30000.0,
+            "outstanding": 18500.0,
+            "emi_amount": 1800.0,
+            "interest_rate": 10.5,
+            "tenure_months": 18,
+            "remaining_emis": 11,
+            "start_date": "2025-10-15",
+            "status": "active",
+        },
+    ],
+    "SB-3001": [
+        {
+            "loan_id": "LN-MUDRA-003",
+            "loan_type": "Mudra Loan (Shishu)",
+            "bank_name": "Bank of Baroda",
+            "principal": 50000.0,
+            "outstanding": 35000.0,
+            "emi_amount": 2500.0,
+            "interest_rate": 7.5,
+            "tenure_months": 24,
+            "remaining_emis": 14,
+            "start_date": "2025-07-01",
+            "status": "active",
+        },
+        {
+            "loan_id": "LN-OLD-004",
+            "loan_type": "Equipment Loan",
+            "bank_name": "Canara Bank",
+            "principal": 20000.0,
+            "outstanding": 0.0,
+            "emi_amount": 1200.0,
+            "interest_rate": 9.0,
+            "tenure_months": 18,
+            "remaining_emis": 0,
+            "start_date": "2024-01-01",
+            "status": "closed",
+        },
+    ],
+    "JD-1002": [],
+    "NONE-0001": [],
+}
+
+
+# ─── SPENDING LIMITS DATABASE ────────────────────────────────────────
+
+SPENDING_LIMITS = {
+    "JD-1001": {"monthly_limit": 3000.0},
+    "SB-2001": {"monthly_limit": 2000.0},
+    "SB-2002": {"monthly_limit": 5000.0},
+    "SB-3001": {"monthly_limit": 10000.0},
+    "JD-1002": {"monthly_limit": 1500.0},
+    "NONE-0001": {"monthly_limit": 0.0},
+}
+
+
+# ─── FIXED DEPOSITS DATABASE ─────────────────────────────────────────
+
+FD_INTEREST_RATE = 6.0  # Fixed 6% simple interest for all FDs
+
+# In-memory store for FDs keyed by account_id
+FIXED_DEPOSITS = {
+    "JD-1001": [
+        {
+            "fd_id": "FD-001",
+            "principal": 10000.0,
+            "duration_months": 12,
+            "interest_rate": FD_INTEREST_RATE,
+            "maturity_amount": 10600.0,
+            "interest_earned": 600.0,
+            "start_date": "2025-11-01",
+            "maturity_date": "2026-11-01",
+            "status": "active",
+        },
+    ],
+    "SB-2001": [],
+    "SB-2002": [],
+    "SB-3001": [
+        {
+            "fd_id": "FD-002",
+            "principal": 25000.0,
+            "duration_months": 24,
+            "interest_rate": FD_INTEREST_RATE,
+            "maturity_amount": 28000.0,
+            "interest_earned": 3000.0,
+            "start_date": "2025-06-15",
+            "maturity_date": "2027-06-15",
+            "status": "active",
+        },
+    ],
+    "JD-1002": [],
+    "NONE-0001": [],
 }
 
 
@@ -391,6 +539,131 @@ def get_transactions(account_id: str, last_n: int = 5) -> list:
     if not acct:
         return []
     return copy.deepcopy(acct["transaction_history"][-last_n:])
+
+
+def get_installments(account_id: str) -> list:
+    """Returns upcoming installments/reminders for the given account."""
+    return copy.deepcopy(INSTALLMENTS.get(account_id, []))
+
+
+def get_loans(account_id: str) -> list:
+    """Returns loan records for the given account."""
+    return copy.deepcopy(LOANS.get(account_id, []))
+
+
+def get_spending_summary(account_id: str) -> dict:
+    """
+    Calculates total debits for the current month vs the user's spending limit.
+    Returns a dict with spent, limit, remaining, and percentage.
+    """
+    acct = ACCOUNTS.get(account_id)
+    if not acct:
+        return {"error": "Account not found"}
+
+    limit_data = SPENDING_LIMITS.get(account_id, {"monthly_limit": 0.0})
+    monthly_limit = limit_data["monthly_limit"]
+
+    # Calculate total debits this month
+    now = datetime.now()
+    current_month = now.strftime("%Y-%m")
+    total_spent = 0.0
+    for txn in acct.get("transaction_history", []):
+        if txn["type"] == "debit" and txn["date"].startswith(current_month):
+            total_spent += txn["amount"]
+
+    remaining = max(0.0, monthly_limit - total_spent)
+    percentage = (total_spent / monthly_limit * 100) if monthly_limit > 0 else 0.0
+
+    return {
+        "account_id": account_id,
+        "monthly_limit": monthly_limit,
+        "total_spent": total_spent,
+        "remaining": remaining,
+        "percentage": round(min(percentage, 100.0), 1),
+        "over_budget": total_spent > monthly_limit if monthly_limit > 0 else False,
+        "month": current_month,
+    }
+
+
+def set_spending_limit(account_id: str, limit: float) -> dict:
+    """Sets or updates the monthly spending limit for a user."""
+    if account_id not in ACCOUNTS:
+        return {"success": False, "error": "Account not found"}
+    if limit < 0:
+        return {"success": False, "error": "Limit must be non-negative"}
+
+    SPENDING_LIMITS[account_id] = {"monthly_limit": limit}
+    return {
+        "success": True,
+        "message": f"Monthly spending limit set to ₹{limit:,.2f}",
+        "new_limit": limit,
+    }
+
+
+def get_fixed_deposits(account_id: str) -> list:
+    """Returns fixed deposits for the given account."""
+    return copy.deepcopy(FIXED_DEPOSITS.get(account_id, []))
+
+
+def create_fixed_deposit(account_id: str, amount: float, duration_months: int) -> dict:
+    """Creates a new fixed deposit and deducts from account balance."""
+    acct = ACCOUNTS.get(account_id)
+    if not acct:
+        return {"success": False, "error": "Account not found"}
+
+    if amount <= 0:
+        return {"success": False, "error": "Amount must be positive"}
+    
+    if duration_months <= 0:
+        return {"success": False, "error": "Duration must be positive"}
+
+    if acct["balance"] < amount:
+        return {"success": False, "error": "Insufficient balance"}
+
+    # Deduct from balance
+    acct["balance"] -= amount
+    
+    # Calculate simple interest
+    interest_earned = (amount * FD_INTEREST_RATE * (duration_months / 12)) / 100
+    maturity_amount = amount + interest_earned
+
+    now = datetime.now()
+    maturity_date = now + timedelta(days=30 * duration_months) # Approximation
+
+    # Create FD record
+    fd_id = f"FD-{int(datetime.now().timestamp())}"
+    new_fd = {
+        "fd_id": fd_id,
+        "principal": amount,
+        "duration_months": duration_months,
+        "interest_rate": FD_INTEREST_RATE,
+        "maturity_amount": maturity_amount,
+        "interest_earned": interest_earned,
+        "start_date": now.strftime("%Y-%m-%d"),
+        "maturity_date": maturity_date.strftime("%Y-%m-%d"),
+        "status": "active",
+    }
+    
+    if account_id not in FIXED_DEPOSITS:
+        FIXED_DEPOSITS[account_id] = []
+        
+    FIXED_DEPOSITS[account_id].append(new_fd)
+    
+    # Add transaction record
+    txn = {
+        "txn_id": f"TXN-{int(datetime.now().timestamp())}",
+        "date": now.strftime("%Y-%m-%d %H:%M"),
+        "type": "debit",
+        "amount": amount,
+        "description": f"Fixed Deposit Creation ({duration_months} months)",
+    }
+    acct["transaction_history"].append(txn)
+
+    return {
+        "success": True,
+        "message": f"Fixed deposit of ₹{amount:,.2f} created successfully for {duration_months} months.",
+        "fd": new_fd
+    }
 
 
 def transfer_funds(from_id: str, to_id: str, amount: float) -> dict:
