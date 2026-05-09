@@ -2,6 +2,25 @@
 
 All notable changes to the Artha AI project will be documented in this file.
 
+## [1.3.0] - 2026-05-09
+
+### Added
+- **Material Design 3 Dark Mode:** Completely overhauled the platform's visual aesthetic by migrating all hardcoded color values to a dynamic CSS variable system (`index.css`). Implemented a premium, high-contrast Material 3 dark theme featuring deep slate backgrounds and vibrant lilac accents, with toggle buttons integrated natively into the mobile header and desktop sidebar.
+- **Persistent Theme Preferences:** Updated the `SessionContext.jsx` to store and persist the user's `isDarkMode` preference via `localStorage`, ensuring a seamless experience across sessions.
+- **Dedicated Fraud Detection Dashboard:** Developed a new, standalone frontend module (`FraudDetection.jsx`) to centralize account security.
+- **Fraud Alerts History:** Upgraded the system's state management to track a comprehensive chronological `fraudHistory` array, allowing users to review all scam attempts intercepted by the AI during their session.
+- **Risk Profiling & Community Reporting:** The new dashboard visualizes the user's specific fraud risk profile and provides an interactive form to report suspicious phone numbers or messages directly.
+
+## [1.2.0] - 2026-05-09
+
+### Added
+- **Offline Scheme Recommender Engine:** Implemented a robust rule-based recommendation system (`schemes_scraper_and_recommender.py`) that matches users to optimal government schemes based on their profile attributes (occupation, income, etc.) without relying on external APIs.
+- **Comprehensive Schemes Database:** Integrated a local offline database (`schemes_database.json`) containing detailed information on over 50 government schemes, ensuring the AI can provide immediate, offline assistance.
+- **Enhanced SchemesAgent:** Upgraded the AI voice assistant's `SchemesAgent` to seamlessly query the new local database, allowing it to autonomously fetch scheme details and provide personalized recommendations during conversation.
+- **Full-Stack Schemes Integration:** Connected the React frontend (`Schemes.jsx`) to new dedicated backend API routes (`/schemes/all`, `/schemes/recommend`), enabling users to browse, filter, and view detailed scheme information natively within the UI.
+- **Interactive Financial Literacy Module:** Overhauled the `Education.jsx` page with a rich, categorized curriculum covering Security, Savings, and Government Schemes.
+- **Native Text-to-Speech (TTS) Engine:** Built a powerful client-side reading feature directly into the Financial Literacy module. It utilizes the Web Speech API to read lessons aloud in English, Hindi, and Kannada. Features include seamless audio chunking (bypassing browser limits), intelligent currency pronunciation, and an animated progress tracker.
+
 ## [1.1.0] - 2026-05-08
 
 ### Added

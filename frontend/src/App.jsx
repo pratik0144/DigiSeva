@@ -8,6 +8,7 @@ import { Schemes } from './pages/Schemes';
 import { Education } from './pages/Education';
 import { VoiceInteraction } from './pages/VoiceInteraction';
 import { Login } from './pages/Login';
+import { FraudDetection } from './pages/FraudDetection';
 
 const AppContent = () => {
   const { profile, isInitialized } = useSession();
@@ -31,6 +32,7 @@ const AppContent = () => {
           <Route path="transactions" element={<Transactions />} />
           <Route path="schemes" element={<Schemes />} />
           <Route path="education" element={<Education />} />
+          <Route path="fraud-detection" element={<FraudDetection />} />
         </Route>
         {/* Voice is outside layout to be fullscreen overlay on mobile */}
         <Route path="/voice" element={<VoiceInteraction />} />

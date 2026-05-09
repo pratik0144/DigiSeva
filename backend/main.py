@@ -37,6 +37,10 @@ from core.voice_layer import WhisperSTT, ArthaTTS
 app = Flask(__name__)
 CORS(app)
 
+# Register schemes API routes
+from agents.schemes_scraper_and_recommender import register_schemes_routes
+register_schemes_routes(app)
+
 # Logging
 logging.basicConfig(
     level=logging.INFO,

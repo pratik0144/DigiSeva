@@ -3,8 +3,8 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { AlertBanner } from '../components/ui/AlertBanner';
 import { useSession } from '../context/SessionContext';
-import { 
-  Mic, ArrowRight, ShieldAlert, Sparkles, Send, Globe, 
+import {
+  Mic, ArrowRight, ShieldAlert, Sparkles, Send, Globe,
   Bell, Landmark, TrendingUp, CalendarClock, AlertTriangle,
   CheckCircle2, PiggyBank, Wallet
 } from 'lucide-react';
@@ -33,31 +33,31 @@ export const Home = () => {
     fetch(`${BANK}/account/${id}/installments`)
       .then(r => r.json())
       .then(d => { if (d.status === 'success') setInstallments(d.installments); })
-      .catch(() => {});
+      .catch(() => { });
 
     // Loans
     fetch(`${BANK}/account/${id}/loans`)
       .then(r => r.json())
       .then(d => { if (d.status === 'success') setLoans(d.loans); })
-      .catch(() => {});
+      .catch(() => { });
 
     // Spending
     fetch(`${BANK}/account/${id}/spending`)
       .then(r => r.json())
       .then(d => { if (d.status === 'success') setSpending(d); })
-      .catch(() => {});
+      .catch(() => { });
 
     // Fixed Deposits
     fetch(`${BANK}/account/${id}/fixed_deposits`)
       .then(r => r.json())
       .then(d => { if (d.status === 'success') setFixedDeposits(d.fixed_deposits || []); })
-      .catch(() => {});
+      .catch(() => { });
 
     // Eligible schemes (not-yet-enrolled)
     fetch(`${BANK}/account/${id}/eligible_schemes`)
       .then(r => r.json())
       .then(d => { if (d.status === 'success') setEligibleSchemes(d.eligible_schemes || []); })
-      .catch(() => {});
+      .catch(() => { });
   }, [profile]);
 
   const handleSend = (e) => {
@@ -99,13 +99,13 @@ export const Home = () => {
 
   return (
     <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full relative">
-      
+
       {/* Top right language toggle */}
       <div className="absolute -top-4 right-0 z-50">
         <div className="bg-surface-container-low border border-outline-variant rounded-full flex items-center px-3 py-1 shadow-sm">
           <Globe size={16} className="text-primary mr-2" />
-          <select 
-            value={appLang} 
+          <select
+            value={appLang}
             onChange={(e) => changeLanguage(e.target.value)}
             className="bg-transparent text-primary body-sm font-semibold focus:outline-none cursor-pointer"
             disabled={isLoading}
@@ -118,9 +118,9 @@ export const Home = () => {
       </div>
 
       {latestFraudAlert && (
-        <AlertBanner 
-          type="fraud" 
-          title="⚠️ Fraud Alert Detected" 
+        <AlertBanner
+          type="fraud"
+          title="⚠️ Fraud Alert Detected"
           message={latestFraudAlert.warning}
           onDismiss={dismissFraudAlert}
         />
@@ -136,9 +136,9 @@ export const Home = () => {
           <p className="body-md opacity-90 max-w-md">
             {t.heroText}
           </p>
-          
-          <Button 
-            variant="secondary" 
+
+          <Button
+            variant="secondary"
             className="mt-8 bg-surface text-primary border-surface hover:bg-surface-variant hover:text-primary"
             onClick={() => navigate('/voice')}
           >
@@ -178,7 +178,7 @@ export const Home = () => {
                   <p className="font-semibold text-sm">{scheme.name}</p>
                   <p className="text-xs text-secondary">{scheme.benefit_amount}</p>
                 </div>
-                <button 
+                <button
                   onClick={() => sendMessage(`Tell me about ${scheme.name}`)}
                   className="text-xs bg-primary text-on-primary px-3 py-1.5 rounded-full font-semibold hover:opacity-90 transition-opacity"
                 >
@@ -216,16 +216,16 @@ export const Home = () => {
           )}
         </div>
         <form onSubmit={handleSend} className="flex gap-2">
-          <input 
-            type="text" 
+          <input
+            type="text"
             value={textInput}
             onChange={(e) => setTextInput(e.target.value)}
             placeholder={t.typeQuestion}
             className="flex-1 bg-surface-container-low border border-outline-variant rounded-full px-4 py-3 focus:outline-none focus:border-primary body-sm"
             disabled={isLoading}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading || !textInput.trim()}
             className="bg-primary text-on-primary w-12 h-12 rounded-full flex items-center justify-center disabled:opacity-50"
           >
@@ -263,7 +263,7 @@ export const Home = () => {
           ) : (
             <p className="body-sm text-secondary">No upcoming payments 🎉</p>
           )}
-          <button 
+          <button
             onClick={() => sendMessage("Show my installments and reminders")}
             className="mt-3 text-xs text-primary font-semibold flex items-center gap-1 hover:underline"
           >
@@ -314,7 +314,7 @@ export const Home = () => {
               <p className="text-xs text-secondary mt-1">You're debt-free!</p>
             </div>
           )}
-          <button 
+          <button
             onClick={() => sendMessage("Show my loan details")}
             className="mt-3 text-xs text-primary font-semibold flex items-center gap-1 hover:underline"
           >
@@ -365,7 +365,7 @@ export const Home = () => {
               <p className="text-xs text-secondary mt-1">Invest and watch your money grow!</p>
             </div>
           )}
-          <button 
+          <button
             onClick={() => sendMessage("I want to create a fixed deposit")}
             className="mt-3 text-xs text-primary font-semibold flex items-center gap-1 hover:underline"
           >
@@ -390,7 +390,7 @@ export const Home = () => {
                   </span>
                 </div>
                 <div className="w-full bg-surface-container rounded-full h-4 overflow-hidden">
-                  <div 
+                  <div
                     className={`h-full rounded-full transition-all duration-500 ${spending.over_budget ? 'bg-error' : spending.percentage > 75 ? 'bg-yellow-500' : 'bg-primary'}`}
                     style={{ width: `${Math.min(spending.percentage, 100)}%` }}
                   />
@@ -431,7 +431,7 @@ export const Home = () => {
               placeholder="₹ Set budget..."
               className="flex-1 bg-surface-container-low border border-outline-variant rounded-full px-3 py-2 text-sm focus:outline-none focus:border-primary"
             />
-            <button 
+            <button
               onClick={handleSetBudget}
               disabled={!budgetInput}
               className="bg-primary text-on-primary px-4 py-2 rounded-full text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition-opacity"
@@ -439,7 +439,7 @@ export const Home = () => {
               Set
             </button>
           </div>
-          <button 
+          <button
             onClick={() => sendMessage("How much have I spent this month?")}
             className="mt-3 text-xs text-primary font-semibold flex items-center gap-1 hover:underline"
           >

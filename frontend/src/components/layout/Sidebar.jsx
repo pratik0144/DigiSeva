@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, IndianRupee, FileText, BookOpen, Mic, LogOut } from 'lucide-react';
+import { Home, IndianRupee, FileText, BookOpen, Mic, LogOut, ShieldAlert } from 'lucide-react';
 import { useSession } from '../../context/SessionContext';
 
 export const Sidebar = () => {
@@ -16,42 +16,50 @@ export const Sidebar = () => {
       </div>
 
       <nav className="flex-1 p-4 flex flex-col gap-2">
-        <NavLink 
-          to="/" 
+        <NavLink
+          to="/"
           className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md font-semibold transition-colors ${isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
         >
           <Home size={20} />
           <span>{t.dashboard}</span>
         </NavLink>
 
-        <NavLink 
-          to="/transactions" 
+        <NavLink
+          to="/transactions"
           className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md font-semibold transition-colors ${isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
         >
           <IndianRupee size={20} />
           <span>{t.transactions}</span>
         </NavLink>
 
-        <NavLink 
-          to="/schemes" 
+        <NavLink
+          to="/schemes"
           className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md font-semibold transition-colors ${isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
         >
           <FileText size={20} />
           <span>{t.schemes}</span>
         </NavLink>
 
-        <NavLink 
-          to="/education" 
+        <NavLink
+          to="/education"
           className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md font-semibold transition-colors ${isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
         >
           <BookOpen size={20} />
           <span>{t.literacy}</span>
         </NavLink>
-        
+
+        <NavLink
+          to="/fraud-detection"
+          className={({ isActive }) => `flex items-center gap-3 px-4 py-3 rounded-md font-semibold transition-colors ${isActive ? 'bg-primary-container text-on-primary-container' : 'text-on-surface hover:bg-surface-container'}`}
+        >
+          <ShieldAlert size={20} className="text-error" />
+          <span>{t.fraudDetection || 'Fraud Detection'}</span>
+        </NavLink>
+
         <div className="mt-8 px-4">
           <p className="label text-secondary uppercase mb-2">Actions</p>
-          <NavLink 
-            to="/voice" 
+          <NavLink
+            to="/voice"
             className="flex items-center gap-3 px-4 py-3 rounded-full font-semibold bg-primary text-on-primary hover:opacity-90 shadow-md transition-opacity"
           >
             <Mic size={20} />

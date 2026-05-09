@@ -426,7 +426,7 @@ Rules: Use ONLY numbers from BANK DATA. Max 2 sentences. Simple words. End with:
 class SchemesAgent:
     """
     Handles government scheme discovery and enrollment.
-    Routes through Gemini via LLMRouter.
+    Uses 51 schemes from local database + SchemeRecommender for personalized results.
     """
 
     def __init__(self, orchestrator_context: dict):
@@ -434,6 +434,10 @@ class SchemesAgent:
         self.context = orchestrator_context
         self.agent_name = "schemes"
         self.base_url = "http://localhost:5001"
+        # Load schemes database and recommender
+        from agents.schemes_scraper_and_recommender import ALL_SCHEMES, SchemeRecommender
+        self.all_schemes = ALL_SCHEMES
+        self.recommender = SchemeRecommender(ALL_SCHEMES)
 
     # ---- Scheme API Calls ----
 
@@ -485,6 +489,56 @@ class SchemesAgent:
         text_lower = text.lower()
         return any(kw in text_lower for kw in enroll_keywords)
 
+    def _get_recommendations(self) -> str:
+        """Get top 5 personalized scheme recommendations for the user."""
+        profile = {
+            "account_id": self.context.get("account_id", ""),
+            "language": self.context.get("language", "hi"),
+            "occupation": self.context.get("occupation", ""),
+            "income_bracket": self.context.get("income_bracket", "₹0 – ₹5,000"),
+            "has_bank": "Jan Dhan account",
+            "assets": "",
+            "concern": self.context.get("concern", ""),
+            "enrolled_schemes": self.context.get("eligible_schemes", []),
+        }
+        results = self.recommender.recommend(profile)
+        lines = []
+        for s in results[:5]:
+            lines.append(f"- {s['name']}: {s['benefits']} ({s.get('why_for_you','')})")
+        return "\n".join(lines) if lines else "No specific recommendations."
+
+    def _find_scheme_info(self, text: str) -> str:
+        """Search all 51 schemes for relevant matches to user's query."""
+        text_lower = text.lower()
+        matches = []
+        for s in self.all_schemes:
+            score = 0
+            name_l = s["name"].lower()
+            desc_l = s.get("description", "").lower()
+            tags = " ".join(s.get("tags", []))
+            # Check name match
+            for word in text_lower.split():
+                if len(word) > 2 and word in name_l:
+                    score += 10
+                if len(word) > 2 and word in desc_l:
+                    score += 5
+                if len(word) > 2 and word in tags:
+                    score += 3
+            if score > 0:
+                matches.append((score, s))
+        matches.sort(key=lambda x: x[0], reverse=True)
+        if not matches:
+            return ""
+        lines = []
+        for _, s in matches[:5]:
+            docs = ", ".join(s.get("documents_required", []))
+            lines.append(
+                f"- {s['name']} ({s['ministry']}): {s['benefits']}. "
+                f"Eligibility: {json.dumps(s.get('eligibility',{}), ensure_ascii=False)}. "
+                f"Documents: {docs}. URL: {s.get('source_url','')}"
+            )
+        return "\n".join(lines)
+
     # ---- Main Run ----
 
     def run(self, user_message: str, conversation_history: list) -> dict:
@@ -492,22 +546,27 @@ class SchemesAgent:
         Process a government schemes query.
 
         Steps:
-          1. Always fetch eligible schemes first
-          2. Check if user wants to enroll
-          3. Build prompt with scheme data
-          4. Generate response via LLMRouter
+          1. Search 51 schemes for relevant matches
+          2. Get personalized recommendations
+          3. Check if user wants to enroll
+          4. Build prompt with real scheme data
+          5. Generate response via LLMRouter
         """
         account_id = self.context.get("account_id", "UNKNOWN")
 
-        # Always fetch fresh scheme data
+        # Search for schemes matching user's query
+        search_results = self._find_scheme_info(user_message)
+
+        # Get personalized recommendations
+        recommendations = self._get_recommendations()
+
+        # Also fetch from bank API for enrolled schemes
         schemes_data = self._get_eligible_schemes(account_id)
 
         # Check for enrollment intent
         enrollment_result = None
         if self._wants_enrollment(user_message):
-            # Try to extract scheme name from message (simple heuristic)
-            scheme_names = ["PM-KISAN", "PMJDY", "Ujjwala", "PMSBY",
-                            "PMJJBY", "MGNREGA", "PM Awas", "Mudra", "Jan Dhan"]
+            scheme_names = [s["name"] for s in self.all_schemes] + [s["id"] for s in self.all_schemes]
             for scheme in scheme_names:
                 if scheme.lower() in user_message.lower():
                     enrollment_result = self._enroll_scheme(account_id, scheme)
@@ -521,12 +580,24 @@ class SchemesAgent:
         if enrollment_result:
             enrollment_block = f"\nEnrollment result: {enrollment_result}\n"
 
+        search_block = ""
+        if search_results:
+            search_block = f"\nSchemes matching user query:\n{search_results}\n"
+
         system_prompt = f"""You are a government schemes advisor for rural India.
 {lang_instruction}
 User: {self.context.get('name','User')}, Occupation: {self.context.get('occupation','unknown')}
-Schemes data: {schemes_data}
+Enrolled schemes: {schemes_data}
+{search_block}
+Top recommendations for this user:
+{recommendations}
 {enrollment_block}
-Rules: Only mention schemes from data above. Max 3 sentences. Mention exact benefit amounts. Simple words."""
+Rules:
+- Answer from the scheme data above ONLY. Do not invent schemes.
+- If user asks about a specific scheme, give: name, benefits, documents needed.
+- If user asks "which schemes for me" or "kaunsi yojana", list top 3-5 recommendations.
+- Max 3-4 sentences. Mention exact amounts. Use simple words.
+- If asked how to apply, mention documents needed and source URL."""
 
         # Generate response via LLMRouter
         messages = conversation_history + [{"role": "user", "content": user_message}]
@@ -534,7 +605,7 @@ Rules: Only mention schemes from data above. Max 3 sentences. Mention exact bene
             self.agent_name,
             system_prompt,
             messages,
-            max_tokens=150,
+            max_tokens=200,
         )
 
         if result["text"].startswith("[LLMRouter]"):

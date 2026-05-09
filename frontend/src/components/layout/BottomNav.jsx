@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Home, IndianRupee, FileText, BookOpen, Mic } from 'lucide-react';
+import { Home, IndianRupee, FileText, BookOpen, Mic, ShieldAlert } from 'lucide-react';
 
 export const BottomNav = () => {
   return (
@@ -37,6 +37,14 @@ export const BottomNav = () => {
       >
         <FileText size={24} />
         <span className="text-[10px] font-semibold">Schemes</span>
+      </NavLink>
+
+      <NavLink 
+        to="/fraud-detection" 
+        className={({ isActive }) => `flex flex-col items-center gap-1 ${isActive ? 'text-error' : 'text-secondary'}`}
+      >
+        <ShieldAlert size={24} />
+        <span className="text-[10px] font-semibold">Fraud</span>
       </NavLink>
 
       <NavLink 

@@ -35,7 +35,7 @@ export const Layout = () => {
             </div>
           </div>
         </header>
-        
+
         <Outlet />
       </main>
       <BottomNav />

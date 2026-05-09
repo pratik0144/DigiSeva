@@ -25,6 +25,7 @@ export const UI_DICT = {
     transactions: "Transactions",
     schemes: "Government Schemes",
     literacy: "Financial Literacy",
+    fraudDetection: "Fraud Detection",
     voiceAssistant: "Voice Assistant",
     hello: "Hello",
     heroText: "Tap the microphone or type below to check your balance, review transactions, or ask about schemes.",
@@ -46,10 +47,11 @@ export const UI_DICT = {
     greeting: "Session cleared. How can I help you?",
   },
   hi: {
-    dashboard: "Dashboard", 
-    transactions: "Transactions", 
+    dashboard: "Dashboard",
+    transactions: "Transactions",
     schemes: "Sarkari Yojna",
     literacy: "Financial Siksha",
+    fraudDetection: "Dhokhadhadi Bachav",
     voiceAssistant: "Voice Assistant",
     hello: "Namaste",
     heroText: "Microphone dabayein ya niche type karein apna balance, transactions, ya schemes ke baare mein janne ke liye.",
@@ -71,10 +73,11 @@ export const UI_DICT = {
     greeting: "Session clear ho gaya. Main aapki kaise madad kar sakta hoon?",
   },
   kn: {
-    dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್", 
+    dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     transactions: "ವಹಿವಾಟುಗಳು",
     schemes: "ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
     literacy: "ಹಣಕಾಸು ಸಾಕ್ಷರತೆ",
+    fraudDetection: "ವಂಚನೆ ಪತ್ತೆ",
     voiceAssistant: "ಧ್ವನಿ ಸಹಾಯಕಿ",
     hello: "ನಮಸ್ಕಾರ",
     heroText: "ನಿಮ್ಮ ಬ್ಯಾಲೆನ್ಸ್, ವಹಿವಾಟುಗಳು ಅಥವಾ ಯೋಜನೆಗಳ ಬಗ್ಗೆ ಕೇಳಲು ಮೈಕ್ರೊಫೋನ್ ಟ್ಯಾಪ್ ಮಾಡಿ ಅಥವಾ ಕೆಳಗೆ ಟೈಪ್ ಮಾಡಿ.",
@@ -105,8 +108,9 @@ export const SessionProvider = ({ children }) => {
   const [isInitialized, setIsInitialized] = useState(false);
   const [activeAgents, setActiveAgents] = useState([]);
   const [latestFraudAlert, setLatestFraudAlert] = useState(null);
+  const [fraudHistory, setFraudHistory] = useState([]);
   const [appLang, setAppLang] = useState('en'); // Holds the current selected language code
-  
+
   // App initialization
   const initializeApp = async (lang = 'en', accountId = 'JD-1001') => {
     setIsLoading(true);
@@ -117,15 +121,15 @@ export const SessionProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ account_id: accountId })
       });
-      
+
       const bankData = await bankRes.json();
-      
+
       if (bankData.status !== 'success') {
         throw new Error("Invalid account ID");
       }
-      
+
       const acct = bankData.data;
-      
+
       const accountData = {
         account_id: acct.account_id,
         name: acct.name,
@@ -139,14 +143,14 @@ export const SessionProvider = ({ children }) => {
       };
 
       const result = await onboardUser(accountData);
-      
+
       if (result.status === 'success') {
         setProfile(result.profile);
         setSchemes(result.eligible_schemes);
         setActiveAgents(result.active_agents);
         setIsInitialized(true);
         setAppLang(lang);
-        
+
         // Add initial greeting to history
         setHistory([
           { role: 'assistant', content: result.greeting, agent: 'greeting' }
@@ -169,6 +173,7 @@ export const SessionProvider = ({ children }) => {
   const logout = () => {
     setProfile(null);
     setHistory([]);
+    setFraudHistory([]);
     setIsInitialized(false);
   };
 
@@ -186,44 +191,48 @@ export const SessionProvider = ({ children }) => {
 
   const sendMessage = async (messageText) => {
     if (!messageText.trim() || !profile) return;
-    
+
     // Add user message to UI immediately
     const userMsg = { role: 'user', content: messageText };
     setHistory(prev => [...prev, userMsg]);
     setIsLoading(true);
     setLatestFraudAlert(null);
-    
+
     try {
       const result = await sendChatMessage(profile.account_id, messageText);
-      
+
       if (result.status === 'success') {
         // If fraud was triggered, handle it prominently
         if (result.fraud_triggered) {
-          setLatestFraudAlert({
+          const alertData = {
+            id: Date.now(),
             warning: result.response,
-            intent: result.intent_detected
-          });
+            intent: result.intent_detected,
+            timestamp: new Date().toISOString()
+          };
+          setLatestFraudAlert(alertData);
+          setFraudHistory(prev => [alertData, ...prev]);
         }
-        
+
         // Add assistant response
-        const asstMsg = { 
-          role: 'assistant', 
+        const asstMsg = {
+          role: 'assistant',
           content: result.response,
           agent: result.agent_used,
           model: result.model_used,
           intent: result.intent_detected,
           fraud_triggered: result.fraud_triggered
         };
-        
+
         setHistory(prev => [...prev, asstMsg]);
         return result;
       }
     } catch (error) {
       console.error("Error sending message", error);
-      
+
       const t = UI_DICT[appLang] || UI_DICT['en'];
-      const errorMsg = { 
-        role: 'assistant', 
+      const errorMsg = {
+        role: 'assistant',
         content: t.networkError,
         agent: 'system'
       };
@@ -254,6 +263,7 @@ export const SessionProvider = ({ children }) => {
       activeAgents,
       latestFraudAlert,
       appLang,
+      fraudHistory,
       t, // Provide the translated dictionary directly to components
       changeLanguage,
       sendMessage,
